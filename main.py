@@ -236,47 +236,62 @@ async def send_countdown_update(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle errors."""
-    logger.error(f"Update {update} caused error {context.error}")
+    error = context.error
+    logger.error(f"Update {update} caused error {error}")
+    
+    if isinstance(error, TimedOut):
+        logger.warning("Request timed out - will retry automatically")
+    elif isinstance(error, NetworkError):
+        logger.error(f"Network error occurred: {error}")
+    else:
+        logger.error(f"Unexpected error: {error}")
 
 async def main() -> None:
-    """Start the bot with automatic reconnection."""
-    while True:
-        try:
-            # Get token from environment variable
-            token = os.getenv('TELEGRAM_BOT_TOKEN')
-            if not token:
-                logger.error("No token provided!")
-                return
+    """Start the bot."""
+    # Get token from environment variable
+    token = os.getenv('TELEGRAM_BOT_TOKEN')
+    if not token:
+        logger.error("No token provided!")
+        return
 
-            # Create application
-            application = Application.builder().token(token).build()
+    # Create application with appropriate timeout settings
+    application = (
+        Application.builder()
+        .token(token)
+        .read_timeout(30)
+        .write_timeout(30)
+        .connect_timeout(30)
+        .pool_timeout(30)
+        .build()
+    )
 
-            # Add command handlers
-            application.add_handler(CommandHandler("setcountdown", set_countdown))
-            application.add_handler(CommandHandler("countdown", get_countdown))
+    # Add command handlers
+    application.add_handler(CommandHandler("setcountdown", set_countdown))
+    application.add_handler(CommandHandler("countdown", get_countdown))
 
-            # Add error handler
-            application.add_error_handler(error_handler)
+    # Add error handler
+    application.add_error_handler(error_handler)
 
-            # Start the bot
-            await application.run_polling(
-                allowed_updates=Update.ALL_TYPES,
-                drop_pending_updates=True,
-                timeout=30,
-                read_timeout=30,
-                write_timeout=30,
-                pool_timeout=30,
-                connect_timeout=30
-            )
-
-        except (TimedOut, NetworkError) as e:
-            logger.error(f"Connection error: {e}")
-            logger.info("Waiting 10 seconds before reconnecting...")
-            await asyncio.sleep(10)
-            continue
-        except Exception as e:
-            logger.error(f"Critical error: {e}")
-            break
+    # Start the bot using the new recommended method
+    await application.initialize()
+    await application.start()
+    
+    try:
+        logger.info("Bot started successfully")
+        await application.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True
+        )
+    except Exception as e:
+        logger.error(f"Error during polling: {e}")
+    finally:
+        await application.stop()
+        await application.shutdown()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Bot stopped by user/system")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
