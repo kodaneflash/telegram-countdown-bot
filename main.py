@@ -172,8 +172,7 @@ async def get_countdown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         message = (
             "⏳ AgentAxis Token Launch Countdown\n\n"
             f"Time until launch: {formatted_time}\n"
-            f"Launch time: 2025-02-13 5:00 PM EST\n\n"  # Hardcoded launch time
-            "Stay tuned!"
+            f"Launch time: 2025-02-13 5:00 PM EST"  # Removed "Stay tuned!" and extra newlines
         )
 
     await update.message.reply_text(message)
