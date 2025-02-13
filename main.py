@@ -6,8 +6,6 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram.constants import ChatMemberStatus
-from telegram.error import TimedOut, NetworkError
-import asyncio
 
 # Load environment variables
 load_dotenv()
@@ -236,17 +234,9 @@ async def send_countdown_update(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle errors."""
-    error = context.error
-    logger.error(f"Update {update} caused error {error}")
-    
-    if isinstance(error, TimedOut):
-        logger.warning("Request timed out - will retry automatically")
-    elif isinstance(error, NetworkError):
-        logger.error(f"Network error occurred: {error}")
-    else:
-        logger.error(f"Unexpected error: {error}")
+    logger.error(f"Update {update} caused error {context.error}")
 
-async def main() -> None:
+def main() -> None:
     """Start the bot."""
     # Get token from environment variable
     token = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -254,16 +244,8 @@ async def main() -> None:
         logger.error("No token provided!")
         return
 
-    # Create application with appropriate timeout settings
-    application = (
-        Application.builder()
-        .token(token)
-        .read_timeout(30)
-        .write_timeout(30)
-        .connect_timeout(30)
-        .pool_timeout(30)
-        .build()
-    )
+    # Create application
+    application = Application.builder().token(token).build()
 
     # Add command handlers
     application.add_handler(CommandHandler("setcountdown", set_countdown))
@@ -272,26 +254,8 @@ async def main() -> None:
     # Add error handler
     application.add_error_handler(error_handler)
 
-    # Start the bot using the new recommended method
-    await application.initialize()
-    await application.start()
-    
-    try:
-        logger.info("Bot started successfully")
-        await application.run_polling(
-            allowed_updates=Update.ALL_TYPES,
-            drop_pending_updates=True
-        )
-    except Exception as e:
-        logger.error(f"Error during polling: {e}")
-    finally:
-        await application.stop()
-        await application.shutdown()
+    # Start the bot
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logger.info("Bot stopped by user/system")
-    except Exception as e:
-        logger.error(f"Fatal error: {e}")
+    main()
