@@ -76,7 +76,7 @@ async def set_countdown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             )
             return
 
-        est_tz = ZoneInfo('US/Eastern')
+        est_tz = ZoneInfo('America/New_York')
         current_time = datetime.now(est_tz)
         target_datetime = target_datetime.replace(tzinfo=est_tz)
 
@@ -140,7 +140,7 @@ async def get_countdown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
         return
 
-    est_tz = ZoneInfo('US/Eastern')
+    est_tz = ZoneInfo('America/New_York')
     current_time = datetime.now(est_tz)
     end_time = countdown_data[chat_id]['end_time']
     
@@ -184,7 +184,7 @@ async def send_countdown_update(context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = job.chat_id
     target_time = job.data
 
-    est_tz = ZoneInfo('US/Eastern')
+    est_tz = ZoneInfo('America/New_York')
     current_time = datetime.now(est_tz)
     
     time_remaining = target_time - current_time
