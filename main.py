@@ -114,7 +114,7 @@ async def set_countdown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         update_interval_text = "minute" if DEBUG_MODE else "hour"
         await update.message.reply_text(
             f"✅ AgentAxis Solana Token Launch Countdown Set! 🚀\n\n"
-            f"🗓 Launch Date: {target_datetime.strftime('%Y-%m-%d %H:%M %Z')}\n"
+            f"🗓 Launch Date: 2025-02-13 5:00 PM EST\n"  # Hardcoded date display
             f"⏰ Time until launch: {formatted_time}\n\n"
             f"Updates will be sent every {update_interval_text}\n"
             f"Stay tuned!\n\n"
