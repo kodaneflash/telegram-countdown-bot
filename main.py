@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram.constants import ChatMemberStatus
+from telegram.error import TimedOut, NetworkError
+import asyncio
 
 # Load environment variables
 load_dotenv()
@@ -236,26 +238,45 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Handle errors."""
     logger.error(f"Update {update} caused error {context.error}")
 
-def main() -> None:
-    """Start the bot."""
-    # Get token from environment variable
-    token = os.getenv('TELEGRAM_BOT_TOKEN')
-    if not token:
-        logger.error("No token provided!")
-        return
+async def main() -> None:
+    """Start the bot with automatic reconnection."""
+    while True:
+        try:
+            # Get token from environment variable
+            token = os.getenv('TELEGRAM_BOT_TOKEN')
+            if not token:
+                logger.error("No token provided!")
+                return
 
-    # Create application
-    application = Application.builder().token(token).build()
+            # Create application
+            application = Application.builder().token(token).build()
 
-    # Add command handlers
-    application.add_handler(CommandHandler("setcountdown", set_countdown))
-    application.add_handler(CommandHandler("countdown", get_countdown))
+            # Add command handlers
+            application.add_handler(CommandHandler("setcountdown", set_countdown))
+            application.add_handler(CommandHandler("countdown", get_countdown))
 
-    # Add error handler
-    application.add_error_handler(error_handler)
+            # Add error handler
+            application.add_error_handler(error_handler)
 
-    # Start the bot
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+            # Start the bot
+            await application.run_polling(
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=True,
+                timeout=30,
+                read_timeout=30,
+                write_timeout=30,
+                pool_timeout=30,
+                connect_timeout=30
+            )
+
+        except (TimedOut, NetworkError) as e:
+            logger.error(f"Connection error: {e}")
+            logger.info("Waiting 10 seconds before reconnecting...")
+            await asyncio.sleep(10)
+            continue
+        except Exception as e:
+            logger.error(f"Critical error: {e}")
+            break
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
